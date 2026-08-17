@@ -6,37 +6,36 @@ page-number citations — no hallucinated answers from general knowledge.
 
 ## How it works (architecture)
 
-```
 Upload PDF
-    │
-    ▼
+│
+▼
 Extract text (PyPDFLoader)
-    │
-    ▼
+│
+▼
 Split into ~800-char chunks with overlap (RecursiveCharacterTextSplitter)
-    │
-    ▼
-Embed each chunk into a vector (OpenAI text-embedding-3-small)
-    │
-    ▼
+│
+▼
+Embed each chunk into a vector (Gemini embedding-001, via API)
+│
+▼
 Store vectors in FAISS index (in-memory, keyed by session_id)
 
 --- on question ---
 
 User question
-    │
-    ▼
+│
+▼
 Embed the question the same way
-    │
-    ▼
+│
+▼
 FAISS similarity search -> top 4 most relevant chunks
-    │
-    ▼
-Stuff chunks + question into a prompt -> GPT-4o-mini
-    │
-    ▼
+│
+▼
+Stuff chunks + question into a prompt -> Gemini (gemini-flash-latest)
+│
+▼
 Answer grounded in the retrieved chunks, with source page numbers
-```
+
 
 **Why RAG instead of just asking the LLM directly?** LLMs don't know
 your private/specific document, and they can hallucinate. RAG grounds
@@ -47,11 +46,19 @@ can show exactly which page the answer came from.
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env   # add your OPENAI_API_KEY
-uvicorn app.main:app --reload
+cp .env.example .env   # add your GOOGLE_API_KEY (free from https://aistudio.google.com/apikey)
+uvicorn app.main:app --reload --port 8080
 ```
 
-Then open `http://localhost:8000/docs` for interactive Swagger UI.
+Then open `http://localhost:8080/docs` for interactive Swagger UI.
+
+## Tech stack
+
+- **FastAPI** — backend API
+- **LangChain** — RAG orchestration (chunking, retrieval chain)
+- **FAISS** — in-memory vector similarity search
+- **Google Gemini API** — embeddings (`gemini-embedding-001`) and chat
+  generation (`gemini-flash-latest`), free tier
 
 ## API
 
